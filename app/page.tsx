@@ -9,6 +9,9 @@ import prisma from '@/lib/prisma';
 import { formatDuration, getCategoryColor, getCategoryDisplayName } from '@/lib/utils';
 import Link from 'next/link';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 // Fetch featured courses
 async function getFeaturedCourses() {
   try {
@@ -97,7 +100,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
-      
+
       <main className="flex-1">
         {/* Hero Section */}
         <section className="relative bg-navy overflow-hidden">
@@ -107,7 +110,7 @@ export default async function HomePage() {
               backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23F5A623' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
             }} />
           </div>
-          
+
           <div className="container relative py-20 md:py-32">
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div className="text-white space-y-6">
@@ -115,17 +118,17 @@ export default async function HomePage() {
                   <Compass className="w-3 h-3 mr-1" />
                   Platform Belajar #1 di Indonesia
                 </Badge>
-                
+
                 <h1 className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
                   Temukan Jalanmu,{' '}
                   <span className="gradient-text">Bersama Komunitas</span>
                 </h1>
-                
+
                 <p className="text-lg text-gray-300 max-w-lg">
-                  Bergabung dengan komunitas inspiratif dan akses kursus premium dari mentor terbaik. 
+                  Bergabung dengan komunitas inspiratif dan akses kursus premium dari mentor terbaik.
                   Mulai perjalanan belajarmu hari ini!
                 </p>
-                
+
                 <div className="flex flex-wrap gap-4">
                   <Button variant="amber" size="lg" asChild>
                     <Link href="/register">
@@ -140,7 +143,7 @@ export default async function HomePage() {
                     </Link>
                   </Button>
                 </div>
-                
+
                 {/* Stats */}
                 <div className="flex gap-8 pt-8 border-t border-white/10">
                   <div>
@@ -157,7 +160,7 @@ export default async function HomePage() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Hero Visual */}
               <div className="hidden md:block relative">
                 <div className="relative z-10 glass rounded-2xl p-6 border border-white/20">
@@ -167,7 +170,7 @@ export default async function HomePage() {
                     className="rounded-xl w-full"
                   />
                 </div>
-                
+
                 {/* Floating Cards */}
                 <div className="absolute -top-4 -right-4 glass rounded-xl p-4 shadow-xl animate-fade-in">
                   <div className="w-10 h-10 rounded-lg bg-green-500/20 text-green-500 flex items-center justify-center mb-2">
@@ -176,7 +179,7 @@ export default async function HomePage() {
                   <div className="text-sm font-semibold">12 Kursus</div>
                   <div className="text-xs text-gray-400">Selesai</div>
                 </div>
-                
+
                 <div className="absolute -bottom-4 -left-4 glass rounded-xl p-4 shadow-xl animate-fade-in" style={{ animationDelay: '0.2s' }}>
                   <div className="w-10 h-10 rounded-lg bg-amber/20 text-amber flex items-center justify-center mb-2">
                     <Award className="w-6 h-6" />
@@ -201,7 +204,7 @@ export default async function HomePage() {
                 Semua yang kamu butuhkan untuk berkembang dalam satu platform
               </p>
             </div>
-            
+
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 {
@@ -252,13 +255,20 @@ export default async function HomePage() {
                 Kursus terbaik yang paling diminati oleh member Wayfinders
               </p>
             </div>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {courses.map((course) => (
-                <CourseCard key={course.id} {...course} />
-              ))}
-            </div>
-            
+
+            {courses.length > 0 ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {courses.map((course) => (
+                  <CourseCard key={course.id} {...course} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-card rounded-xl border">
+                <BookOpen className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Kursus akan segera hadir</p>
+              </div>
+            )}
+
             <div className="text-center mt-10">
               <Button variant="amber" size="lg" asChild>
                 <Link href="/explore">
@@ -282,13 +292,20 @@ export default async function HomePage() {
                 Bergabung dengan komunitas yang sesuai dengan passion dan tujuanmu
               </p>
             </div>
-            
-            <div className="grid md:grid-cols-2 gap-6">
-              {communities.map((community) => (
-                <CommunityCard key={community.id} {...community} />
-              ))}
-            </div>
-            
+
+            {communities.length > 0 ? (
+              <div className="grid md:grid-cols-2 gap-6">
+                {communities.map((community) => (
+                  <CommunityCard key={community.id} {...community} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12 bg-card rounded-xl border">
+                <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Komunitas akan segera hadir</p>
+              </div>
+            )}
+
             <div className="text-center mt-10">
               <Button variant="secondary" size="lg" asChild>
                 <Link href="/community">
@@ -308,7 +325,7 @@ export default async function HomePage() {
                 Siap Memulai Perjalanan Belajarmu?
               </h2>
               <p className="text-lg text-gray-300 mb-8">
-                Bergabung dengan ribuan pembelajar lainnya dan akses ratusan kursus premium 
+                Bergabung dengan ribuan pembelajar lainnya dan akses ratusan kursus premium
                 dari mentor terbaik di industri.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
