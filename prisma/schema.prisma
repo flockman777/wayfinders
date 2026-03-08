@@ -1,0 +1,293 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTH
+// ============================================
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String?   // Hashed with bcrypt, null for OAuth users
+  avatar        String?
+  role          String    @default("MEMBER") // MEMBER | INSTRUCTOR | ADMIN
+  emailVerified DateTime?
+  
+  // Relations
+  courses       Course[]
+  enrollments   Enrollment[]
+  progress      Progress[]
+  communityMemberships CommunityMember[]
+  ownedCommunities Community[] @relation("CommunityOwner")
+  posts         Post[]
+  comments      Comment[]
+  certificates  Certificate[]
+  transactions  Transaction[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@map("users")
+}
+
+// ============================================
+// COURSE & CHAPTERS
+// ============================================
+model Course {
+  id            String    @id @default(cuid())
+  title         String
+  slug          String    @unique
+  description   String
+  thumbnail     String?
+  price         Float
+  isFree        Boolean   @default(false)
+  category      String    // BISNIS | TECH | DESAIN | SELF_DEV
+  status        String    @default("DRAFT") // DRAFT | PUBLISHED | ARCHIVED
+  level         String    @default("BEGINNER") // BEGINNER | INTERMEDIATE | ADVANCED
+  duration      Int       @default(0) // in minutes
+  
+  instructorId  String
+  instructor    User      @relation(fields: [instructorId], references: [id])
+  
+  chapters      Chapter[]
+  enrollments   Enrollment[]
+  progress      Progress[]
+  certificates  Certificate[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([slug])
+  @@index([category])
+  @@index([status])
+  @@map("courses")
+}
+
+model Chapter {
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  videoUrl      String?
+  duration      Int       @default(0) // in minutes
+  isFree        Boolean   @default(false)
+  order         Int
+  
+  courseId      String
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  progress      Progress[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([courseId])
+  @@map("chapters")
+}
+
+// ============================================
+// ENROLLMENT & PROGRESS
+// ============================================
+model Enrollment {
+  id            String    @id @default(cuid())
+  userId        String
+  courseId      String
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  status        String    @default("ACTIVE") // ACTIVE | EXPIRED | COMPLETED
+  enrolledAt    DateTime  @default(now())
+  expiresAt     DateTime?
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@map("enrollments")
+}
+
+model Progress {
+  id            String    @id @default(cuid())
+  userId        String
+  chapterId     String
+  courseId      String
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chapter       Chapter   @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  isCompleted   Boolean   @default(false)
+  completedAt   DateTime?
+  watchedDuration Int     @default(0) // in seconds
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@unique([userId, chapterId])
+  @@index([userId, courseId])
+  @@map("progress")
+}
+
+// ============================================
+// COMMUNITY
+// ============================================
+model Community {
+  id            String    @id @default(cuid())
+  name          String
+  slug          String    @unique
+  description   String
+  thumbnail     String?
+  banner        String?
+  isFree        Boolean   @default(false)
+  price         Float     @default(0)
+  category      String
+  memberCount   Int       @default(0)
+  
+  ownerId       String
+  owner         User      @relation("CommunityOwner", fields: [ownerId], references: [id])
+  
+  members       CommunityMember[]
+  posts         Post[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([slug])
+  @@index([category])
+  @@map("communities")
+}
+
+model CommunityMember {
+  id            String    @id @default(cuid())
+  userId        String
+  communityId   String
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community     Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  
+  role          String    @default("MEMBER") // MEMBER | MODERATOR | OWNER
+  joinedAt      DateTime  @default(now())
+  
+  @@unique([userId, communityId])
+  @@index([userId])
+  @@index([communityId])
+  @@map("community_members")
+}
+
+// ============================================
+// POSTS & COMMENTS (Community Feed)
+// ============================================
+model Post {
+  id            String    @id @default(cuid())
+  content       String
+  imageUrl      String?
+  
+  authorId      String
+  author        User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  communityId   String
+  community     Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  
+  likesCount    Int       @default(0)
+  commentsCount Int       @default(0)
+  
+  likes         PostLike[]
+  comments      Comment[]
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([communityId])
+  @@index([authorId])
+  @@map("posts")
+}
+
+model PostLike {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([postId, userId])
+  @@index([postId])
+  @@map("post_likes")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([postId])
+  @@map("comments")
+}
+
+// ============================================
+// TRANSACTIONS & PAYMENTS
+// ============================================
+model Transaction {
+  id              String    @id @default(cuid())
+  userId          String
+  
+  user            User      @relation(fields: [userId], references: [id])
+  
+  type            String    // COURSE | COMMUNITY | SUBSCRIPTION
+  referenceId     String    // courseId or communityId
+  amount          Float
+  
+  status          String    @default("PENDING") // PENDING | PAID | FAILED | EXPIRED | REFUNDED
+  
+  xenditInvoiceId String?
+  xenditPaymentUrl String?
+  
+  paymentMethod   String?
+  paidAt          DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+  @@index([xenditInvoiceId])
+  @@map("transactions")
+}
+
+// ============================================
+// CERTIFICATES
+// ============================================
+model Certificate {
+  id            String    @id @default(cuid())
+  userId        String
+  courseId      String
+  
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course        Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  certificateUrl String?
+  certificateNumber String @unique @default(cuid())
+  
+  issuedAt      DateTime  @default(now())
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@map("certificates")
+}
